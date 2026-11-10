@@ -7,6 +7,7 @@ class AppError(Exception):
     """Lỗi nghiệp vụ có mã HTTP và mã lỗi ổn định để front-end xử lý.
 
     ``fields`` (tuỳ chọn) là map ``{tên trường: thông báo}`` để hiển thị cạnh ô nhập.
+    ``headers`` (tuỳ chọn) là header HTTP đi kèm phản hồi, ví dụ ``WWW-Authenticate``.
     """
 
     def __init__(
@@ -15,12 +16,14 @@ class AppError(Exception):
         code: str,
         message: str,
         fields: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
         self.fields = fields
+        self.headers = headers
 
 
 class DuplicateEmailError(Exception):

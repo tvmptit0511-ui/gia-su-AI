@@ -41,7 +41,7 @@ _HTTP_ERRORS = {
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(request: Request, exc: AppError) -> JSONResponse:
-        return error_response(exc.status_code, exc.code, exc.message, exc.fields)
+        return error_response(exc.status_code, exc.code, exc.message, exc.fields, exc.headers)
 
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation(request: Request, exc: RequestValidationError) -> JSONResponse:

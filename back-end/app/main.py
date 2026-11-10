@@ -18,7 +18,9 @@ from app.middlewares.body_limit import BodySizeLimitMiddleware
 from app.middlewares.security_headers import SecurityHeadersMiddleware
 from app.repositories.user_repository import InMemoryUserRepository
 from app.routes.auth import router as auth_router
+from app.routes.me import router as me_router
 from app.services.auth_service import AuthService, UserRepository
+from app.services.token_service import TokenService
 from app.utils.password import hash_password
 
 
@@ -26,6 +28,7 @@ def create_app(
     *,
     user_repository: UserRepository | None = None,
     password_hasher: Callable[[str], str] | None = None,
+    token_service: TokenService | None = None,
     cors_origins: Sequence[str] | None = None,
     settings: Settings | None = None,
 ) -> FastAPI:
@@ -35,13 +38,18 @@ def create_app(
     origins = list(cors_origins) if cors_origins is not None else list(settings.cors_origins)
 
     app = FastAPI(title="Gia Sư AI API", version="0.1.0")
-    app.state.auth_service = AuthService(
-        user_repository or InMemoryUserRepository(),
-        password_hasher or hash_password,
+    repository = user_repository or InMemoryUserRepository()
+    app.state.user_repository = repository
+    app.state.auth_service = AuthService(repository, password_hasher or hash_password)
+    app.state.token_service = token_service or TokenService(
+        secret=settings.jwt_secret,
+        issuer=settings.jwt_issuer,
+        access_token_minutes=settings.access_token_minutes,
     )
 
     register_error_handlers(app)
     app.include_router(auth_router)
+    app.include_router(me_router)
 
     @app.get("/api/health", tags=["system"])
     async def health() -> dict[str, str]:
@@ -54,7 +62,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=origins,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
         max_age=600,
     )
     return app
