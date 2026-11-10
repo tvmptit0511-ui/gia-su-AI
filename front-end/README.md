@@ -62,3 +62,13 @@ Thiết kế tham chiếu: https://www.figma.com/design/pYRVP7wXAOXI3ZYwIUEBO1. 
 
 
 
+
+## Gộp giao diện
+
+Ứng dụng chạy thống nhất tại `front-end/index.html`. Form tài khoản từ nhánh `frontend` đã được gộp vào `#login` và `#register`, dùng CSS giới hạn trong `.account-screen`. Trang học, hội thoại, luyện tập, tiến độ, hồ sơ, lịch sử và quản trị giữ nguyên route. Giao diện quản trị tài liệu mới từ bản local được bổ sung. `login.html` và `register.html` chuyển đến route tương ứng.
+
+Chạy từ thư mục `front-end`: `node serve.cjs`. Kiểm tra: `node tests/browser.cjs`, `node tests/login.cjs`, `node tests/auth.cjs`. Các test trình duyệt cần server cổng 4173 và Playwright/Edge theo đường dẫn hiện có trong test.
+
+Đây vẫn là giao diện xem trước; việc gộp nhánh không tự kết nối xác thực hay thay đổi phân quyền. Backend lấy nguyên từ main.
+
+Có thể đổi cổng server bằng `$env:PORT="4183"`; khi kiểm thử cổng khác, đặt `$env:BASE_URL="http://127.0.0.1:4183"`.

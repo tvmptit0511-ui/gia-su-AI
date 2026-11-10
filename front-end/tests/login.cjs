@@ -1,3 +1,4 @@
+const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:4173';
 const { chromium } = require('C:/Users/HOANG MAI PHUONG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert = require('node:assert/strict');
 (async () => {
@@ -7,7 +8,7 @@ const assert = require('node:assert/strict');
   const errors = [], requests = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => { if (request.method() !== 'GET') requests.push(request.url()); });
-  await page.goto('http://127.0.0.1:4173/#login');
+  await page.goto(baseUrl + '/#login');
   const email = page.getByLabel('Email', { exact: true });
   const password = page.getByLabel('Mật khẩu', { exact: true });
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
@@ -37,7 +38,7 @@ const assert = require('node:assert/strict');
   await page.getByLabel('Họ tên', { exact: true }).waitFor();
   for (const width of [360, 390, 768, 1440]) {
    await page.setViewportSize({ width, height: 900 });
-   await page.goto('http://127.0.0.1:4173/#login');
+   await page.goto(baseUrl + '/#login');
    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
    if (width === 360 || width === 1440) await page.screenshot({ path: width === 360 ? 'outputs/login-mobile.png' : 'outputs/login.png', fullPage: true });
   }
