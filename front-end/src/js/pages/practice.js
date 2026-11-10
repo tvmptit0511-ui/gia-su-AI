@@ -1,6 +1,8 @@
+import { onSessionCleared } from '../session.js';
 import { el, button, link, heading, panel, field, badge, confirmDialog, notice } from '../components/ui.js';
 import { questions } from '../data.js';
 let lastResult = null;
+onSessionCleared(() => { lastResult = null; });
 export function renderPractice() {
  const root = el('div', {}, heading('Luyện tập kiến thức', '5 câu hỏi. Tự kiểm tra mức hiểu bài và xem giải thích sau khi nộp.'));
  const difficulty = el('select', { className: 'select' }, ...['Dễ', 'Vừa', 'Khó'].map(s => el('option', {}, s)));

@@ -1,3 +1,4 @@
+const { mockSession } = require('./session-fixture.cjs');
 const { chromium } = require('C:/Users/HOANG MAI PHUONG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -12,6 +13,7 @@ const outputDir = path.join(__dirname, 'test-output');
     headless: true
   });
   const page = await browser.newPage();
+  await mockSession(page);
   const pageErrors = [];
   const consoleErrors = [];
   const failedResources = [];
@@ -74,7 +76,7 @@ const outputDir = path.join(__dirname, 'test-output');
     await loginPassword.fill(' mat khau ');
     const loginUrl = page.url();
     await loginPassword.press('Enter');
-    await page.getByText('Đăng nhập chưa khả dụng.', { exact: false }).waitFor();
+    await page.getByText('Phản hồi đăng nhập không hợp lệ. Vui lòng thử lại.', { exact: false }).waitFor();
     assert.equal(page.url(), loginUrl);
     assert.equal(await loginPassword.inputValue(), ' mat khau ');
 
@@ -141,11 +143,11 @@ const outputDir = path.join(__dirname, 'test-output');
       await page.waitForURL('**/index.html#' + route);
       await page.locator('form[data-auth-form="' + route + '"]').waitFor();
     }
-    assert.deepEqual(nonGetRequests, []);
+    assert.equal(nonGetRequests.length, 1); assert.ok(nonGetRequests[0].endsWith('/api/auth/login'));
     assert.deepEqual(pageErrors, []);
     assert.deepEqual(consoleErrors, []);
     assert.deepEqual(failedResources, []);
-    console.log('PASS: 2 trang × 4 viewport; liên kết, Tab/Enter, validation, focus, hiện/ẩn mật khẩu, không request/lưu trữ/reload; console và tài nguyên sạch.');
+    console.log('PASS: 2 trang × 4 viewport; liên kết, Tab/Enter, validation, focus, hiện/ẩn mật khẩu, 1 request đăng nhập được mock, không lưu phiên khi thất bại, không reload; console và tài nguyên sạch.');
   } finally {
     await browser.close();
   }
