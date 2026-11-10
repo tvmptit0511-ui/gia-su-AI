@@ -1,3 +1,4 @@
+const { mockSession } = require('./session-fixture.cjs');
 const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:4173';
 const { chromium } = require('C:/Users/HOANG MAI PHUONG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert = require('node:assert/strict');
@@ -5,6 +6,7 @@ const assert = require('node:assert/strict');
  const browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
  try {
   const page = await browser.newPage();
+  await mockSession(page);
   const errors = [], requests = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => { if (request.method() !== 'GET') requests.push(request.url()); });
@@ -26,11 +28,11 @@ const assert = require('node:assert/strict');
   await page.getByRole('button', { name: 'Ẩn mật khẩu', exact: true }).press('Space');
   assert.equal(await password.getAttribute('type'), 'password');
   await password.press('Enter');
-  await page.getByRole('status').filter({ hasText: 'Đăng nhập chưa khả dụng' }).waitFor();
+  await page.getByRole('status').filter({ hasText: 'Phản hồi đăng nhập không hợp lệ' }).waitFor();
   assert.ok(page.url().endsWith('#login'));
   assert.equal(await page.locator('[aria-invalid=true]').count(), 0);
   assert.deepEqual(await page.evaluate(() => [localStorage.length, sessionStorage.length, document.cookie]), [0, 0, '']);
-  assert.deepEqual(requests, []);
+  assert.equal(requests.length, 1); assert.ok(requests[0].endsWith('/api/auth/login'));
   await password.fill('changed');
   assert.equal(await page.locator('form [role=status]').textContent(), '');
   await page.getByRole('link', { name: 'Đăng ký ngay' }).click();
@@ -43,7 +45,7 @@ const assert = require('node:assert/strict');
    if (width === 360 || width === 1440) await page.screenshot({ path: width === 360 ? 'outputs/login-mobile.png' : 'outputs/login.png', fullPage: true });
   }
   assert.deepEqual(errors, []);
-  console.log('PASS login: validation, focus/ARIA, keyboard reveal, Enter, unavailable service, no credential requests/storage, registration link, 4 viewport widths.');
+  console.log('PASS login: validation, focus/ARIA, keyboard reveal, Enter, unavailable service, one login request with invalid-response fixture; no credential storage, registration link, 4 viewport widths.');
  } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 

@@ -1,4 +1,5 @@
-import { el } from '../components/ui.js';
+import { getSession, login, previewAvailable, startPreview } from '../session.js';
+import { el, button } from '../components/ui.js';
 import { authTemplates } from './auth-templates.js';
 
 export function renderAccountScreen(register = false) {
@@ -9,6 +10,17 @@ export function renderAccountScreen(register = false) {
   layout.append(...Array.from(main.childNodes, node => document.importNode(node, true)));
   const screen = el('div', {className: 'account-screen'}, layout);
   setupForm(screen.querySelector('form'));
+  const message = screen.querySelector('[data-form-message]');
+  message.textContent = getSession().message;
+  if (getSession().status === 'error') message.classList.add('is-error');
+  if(!register && previewAvailable) {
+    screen.querySelector('.auth-card').append(el('section', {className:'preview-login', 'aria-label':'Xem thử giao diện'},
+      el('h2', {}, 'Xem thử giao diện'),
+      el('p', {}, 'Không cần email hay mật khẩu. Dữ liệu minh họa, không kết nối API.'),
+      el('div', {className:'page-actions'},
+        button('Vào thử tài khoản sinh viên', () => startPreview('LEARNER'), 'primary'),
+        button('Vào thử tài khoản quản trị', () => startPreview('ADMIN'), 'secondary'))));
+  }
   return screen;
 }
 
@@ -123,8 +135,9 @@ export function renderAccountScreen(register = false) {
       });
     });
 
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if(form.getAttribute('aria-busy') === 'true') return;
       let firstInvalid = null;
       validators.forEach((validator, input) => {
         const error = validator();
@@ -139,8 +152,35 @@ export function renderAccountScreen(register = false) {
         return;
       }
 
-      message.textContent = form.dataset.authForm === 'login' ? 'Đăng nhập chưa khả dụng. Vui lòng thử lại khi dịch vụ đăng nhập được kết nối.' : 'Biểu mẫu đã hợp lệ. Chức năng gửi chưa được kết nối.';
+      if(form.dataset.authForm !== 'login') {
+        message.textContent = 'Biểu mẫu đã hợp lệ. Chức năng gửi chưa được kết nối.';
+        message.classList.remove('is-error');
+        message.focus({preventScroll:true});
+        return;
+      }
+      const submit = form.querySelector('[type="submit"]');
+      const label = submit.textContent;
+      submit.disabled = true;
+      form.setAttribute('aria-busy', 'true');
+      submit.textContent = 'Đang đăng nhập…';
       message.classList.remove('is-error');
-      message.focus({ preventScroll: true });
+      message.textContent = 'Đang xác thực tài khoản…';
+      try {
+        await login(form.elements.email.value, form.elements.password.value);
+        form.elements.password.value = '';
+      } catch(error) {
+        if(!form.isConnected) return;
+        message.textContent = error.message;
+        message.classList.add('is-error');
+        for(const [name, text] of Object.entries(error.fields || {})) {
+          const input = form.elements.namedItem(name);
+          if(input && typeof text === 'string') showError(input, text);
+        }
+        message.focus({preventScroll:true});
+      } finally {
+        submit.disabled = false;
+        submit.textContent = label;
+        form.removeAttribute('aria-busy');
+      }
     });
   }
