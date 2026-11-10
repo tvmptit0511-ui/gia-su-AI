@@ -1,10 +1,11 @@
 """Kho lưu người dùng trong bộ nhớ.
 
 Thư mục ``database/`` của dự án chưa có thiết kế bảng nên tạm lưu trong bộ nhớ:
-dữ liệu mất khi khởi động lại server. Khi có CSDL thật, viết lớp mới với cùng hai
-phương thức (``find_by_email``, ``create``) và truyền vào ``create_app``, không
-phải sửa service hay route. Với CSDL thật cần ràng buộc UNIQUE trên cột email
-(đã chuẩn hoá chữ thường) và bắt lỗi trùng để ném ``DuplicateEmailError``.
+dữ liệu mất khi khởi động lại server. Khi có CSDL thật, viết lớp mới với cùng ba
+phương thức (``find_by_email``, ``find_by_id``, ``create``) và truyền vào
+``create_app``, không phải sửa service hay route. Với CSDL thật cần ràng buộc
+UNIQUE trên cột email (đã chuẩn hoá chữ thường) và bắt lỗi trùng để ném
+``DuplicateEmailError``.
 """
 
 from __future__ import annotations
@@ -34,6 +35,9 @@ class InMemoryUserRepository:
     async def find_by_email(self, email: str) -> User | None:
         user_id = self._id_by_email.get(email)
         return self._users.get(user_id) if user_id else None
+
+    async def find_by_id(self, user_id: str) -> User | None:
+        return self._users.get(user_id)
 
     async def create(self, *, name: str, email: str, password_hash: str, role: str) -> User:
         # Kiểm tra và ghi không có điểm ``await`` ở giữa nên hai request đăng ký
