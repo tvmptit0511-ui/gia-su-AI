@@ -1,64 +1,60 @@
 # Gia Sư AI frontend
 
-Giao diện HTML/CSS/JavaScript thuần, dùng ES modules. Không gọi API, không xác thực thật và không gửi dữ liệu nhập lên máy chủ. Nội dung học, tiến độ và tài liệu hiển thị là minh hoạ. Thay đổi trong bản xem trước chỉ tồn tại trong bộ nhớ của trang.
+HTML/CSS/JavaScript thuần dùng ES modules. Mã giao diện thống nhất trong thư mục này.
 
 ## Chạy
 
-```powershell
-node serve.cjs
-```
+Từ front-end/: chạy node serve.cjs rồi mở http://127.0.0.1:4173. Có thể đặt biến môi trường PORT để đổi cổng. Không mở index.html bằng file://.
 
-Mở http://127.0.0.1:4173. Hoặc dùng Live Server của VS Code. Không mở index.html bằng file:// vì ES modules cần HTTP.
+## Tài khoản và phân quyền
+
+- src/js/session.js quản lý trạng thái checking, anonymous, authenticated và error.
+- Menu lấy trạng thái phiên chung: khách thấy Đăng nhập/Đăng ký; LEARNER thấy Hồ sơ/Lịch sử/Đăng xuất; ADMIN có thêm Quản trị nội dung.
+- Các route chat, practice, results, dashboard, profile, history cần phiên được xác minh; admin cần role ADMIN. Role không nhận diện được bị từ chối.
+- Hồ sơ hiển thị tên/email/role từ máy chủ; không hard-code sinh viên hoặc quyền quản trị.
+- Mỗi lần tải lại, đổi hash hoặc quay lại tab, token được kiểm tra qua GET /api/auth/me trước khi render nội dung cá nhân. Lỗi mạng giữ token để thử lại, nhưng không mở nội dung cá nhân. HTTP 401/403 xóa phiên phía trình duyệt.
+- POST /api/auth/login gửi JSON email/password theo hợp đồng ở origin/feature/auth-and-database (routes/auth.py, schemas/auth.py). Frontend chỉ cấp quyền sau khi GET /api/auth/me xác minh lại người dùng; không tin role trong payload login hoặc localStorage.
+- Base URL cấu hình trong meta api-base ở index.html, mặc định http://localhost:8000. Backend phải cho phép CORS đúng origin frontend.
+- Token Bearer lưu trong sessionStorage của tab, không lưu mật khẩu. Khi storage bị chặn, phiên chỉ tồn tại trong bộ nhớ. Dữ liệu người dùng không được lưu riêng ở localStorage.
+- Đăng xuất xóa token, trạng thái người dùng, kết quả luyện tập trong bộ nhớ và nội dung dialog rồi về #login. Đây là đăng xuất trên tab hiện tại; không thu hồi token trên máy chủ hoặc đăng xuất thiết bị/tab khác. Backend hiện chưa có hợp đồng thu hồi token/logout.
+
+**Giới hạn backend hiện tại:** Nhánh tích hợp này có đăng ký và /me nhưng chưa có /login. Cần tích hợp backend đăng nhập đã có trên nhánh feature/auth-and-database để đăng nhập thật; lỗi 404 hiển thị thông báo cụ thể, không tạo phiên giả. Đăng ký vẫn chỉ kiểm tra form tại trình duyệt. Các trang học tập và quản trị dùng nội dung minh họa trong bộ nhớ, chưa gọi API dữ liệu. Bảo vệ router chỉ phục vụ điều hướng; API quản trị tương lai phải dùng dependency require_roles ở backend.
 
 ## Cấu trúc
 
-```text
-Project/
-├── docs/           # Tài liệu yêu cầu, thiết kế CSDL, hướng dẫn UI, ảnh tham chiếu
-├── src/
-│   ├── css/        # Styles và responsive
-│   └── js/         # JavaScript, components và các trang
-├── tests/          # Kiểm thử trình duyệt
-├── outputs/        # Ảnh chụp kết quả kiểm thử
-├── index.html      # Điểm vào ứng dụng
-├── serve.cjs       # Server phát triển
-├── AGENTS.md       # Hướng dẫn làm việc với dự án
-└── README.md       # Hướng dẫn chạy và cấu trúc
-```
+- index.html: shell, điều hướng, menu, dialog và vùng thông báo.
+- src/js/app.js: router, menu theo phiên, chặn truy cập và điều hướng.
+- src/js/session.js: kết nối API xác thực và quản lý phiên.
+- src/js/pages/auth-screen.js, auth-templates.js: form tài khoản, validation và trạng thái đang gửi/lỗi.
+- src/css/auth.css: CSS tài khoản giới hạn trong .account-screen.
+- src/js/pages/: học tập, hội thoại, luyện tập, hồ sơ, lịch sử và quản trị tài liệu.
+- login.html/register.html: chuyển hướng tương thích về #login/#register.
 
-Tài liệu mới và ảnh tham chiếu đặt trong `docs/`; mã nguồn đặt trong `src/`; kết quả kiểm thử đặt trong `outputs/`.
+## Kiểm thử
 
-- `index.html`: shell, header, điều hướng, dialog và vùng thông báo.
-- `src/css/styles.css`: token màu, thành phần, desktop/tablet/mobile.
-- `src/js/app.js`: hash router và điều hướng mobile.
-- `src/js/components/ui.js`: hàm DOM an toàn, button, panel, form field, dialog, toast.
-- `src/js/data.js`: nội dung mẫu cố định.
-- `src/js/pages/learning.js`: danh mục, tìm chủ đề, dashboard.
-- `src/js/pages/account.js`: đăng nhập, đăng ký, hồ sơ.
-- `src/js/pages/chat.js`: bố cục hội thoại, gợi ý, xác nhận lời giải, phản hồi.
-- `src/js/pages/practice.js`: bài mẫu 5 câu, nộp và kết quả minh hoạ.
-- `src/js/pages/admin.js`: quản trị danh mục/tài liệu trong bộ nhớ.
-- `serve.cjs`: server tĩnh dùng Node built-in, không cài package.
+Khởi động server rồi chạy từ front-end/:
 
-## Phạm vi
+    node tests/browser.cjs
+    node tests/login.cjs
+    node tests/auth.cjs
+    node tests/session.cjs
 
-Các trang: #home, #login, #register, #chat, #practice, #results, #dashboard, #profile, #admin. Responsive tại 768px và 1100px. Khi tích hợp backend sau này cần hợp đồng API và kiểm tra quyền ở máy chủ; router hiện tại không phải hàng rào xác thực. Biểu mẫu tài khoản chỉ kiểm tra dữ liệu tại trình duyệt; không lưu mật khẩu. Chọn tệp chỉ xem tên, không upload và không phân tích nội dung.
+Đặt BASE_URL nếu server dùng cổng khác, ví dụ http://127.0.0.1:4183. Test hiện dùng đường dẫn Playwright runtime và Edge theo máy phát triển. Các phản hồi đăng nhập, /me và role trong test được giả lập bằng Playwright route; fixture chỉ tồn tại trong tests/, không được import bởi ứng dụng. Kết quả này không chứng minh backend đăng nhập đã được tích hợp hoặc token đã bị thu hồi trên máy chủ.
 
-Thiết kế tham chiếu: https://www.figma.com/design/pYRVP7wXAOXI3ZYwIUEBO1. Lần triển khai không đọc được trạng thái Figma mới do hạn mức MCP; dựa trên các khung đã tạo và bảng màu ảnh trong thư mục.
+Bộ session kiểm tra khách, LEARNER/ADMIN, role thiếu/sai, role login không đáng tin, URL quản trị trực tiếp, bàn phím/mobile, logout/Back/reload/relogin, backend thiếu endpoint, sai mật khẩu, phiên hết hạn, lỗi mạng/thử lại và yêu cầu đăng nhập hoàn tất sau khi đã chuyển trang. Ảnh kiểm tra tài khoản lưu trong tests/test-output/ (Git bỏ qua).
 
-## Kiểm tra
+## Đăng nhập thử giao diện trên localhost
 
-### Form đăng nhập — TK-005
+Tại #login, dùng “Vào thử tài khoản sinh viên” hoặc “Vào thử tài khoản quản trị”, không cần nhập email/mật khẩu. Chế độ xem thử chỉ hiện trên localhost/127.0.0.1, có banner nhận diện và dùng dữ liệu minh họa; không tạo token/API session. Vai trò xem thử lưu riêng trong sessionStorage để giữ khi reload. Đăng xuất xóa chế độ này. Không dùng cơ chế này làm phân quyền backend; triển khai qua hostname khác sẽ không bật xem thử.
 
-`src/js/pages/login.js` triển khai form email/mật khẩu, lỗi tiếng Việt, hỗ trợ trình quản lý mật khẩu, hiện/ẩn mật khẩu, cảnh báo Caps Lock và điều hướng đăng ký. Giao diện dùng lại token hiện có và hỗ trợ màn hình từ 360px.
+## Khu vực ADMIN
 
-Đối chiếu SRS FR-01.2, backlog SF-01.1.3 và bảng phân công TK-005. **Phạm vi được yêu cầu: chỉ tạo giao diện, không gắn API.** Phần xác thực đầy đủ của TK-005/TK-006 nằm ngoài lần triển khai này. Khi dữ liệu hợp lệ, form thông báo dịch vụ chưa khả dụng; không tạo phiên giả, không lưu mật khẩu, không chuyển trang như thể đã đăng nhập. Cần bổ sung endpoint/method, schema request/response, mã lỗi và cơ chế cookie/token trước khi tích hợp lưu trạng thái, xử lý lỗi đăng nhập, trạng thái đang gửi và chuyển `#home` sau thành công. Không có Google login hoặc quên mật khẩu theo phạm vi Won’t của backlog.
+Theo SRS FR-05/FR-08, ADMIN quản lý môn học, chủ đề và tài liệu nguồn. Điều hướng ADMIN gồm ba mục riêng trong sidebar tối trên desktop và menu thu gọn trên mobile, menu tài khoản chỉ có Hồ sơ quản trị và Đăng xuất. URL chuẩn là #admin?tab=subjects, #admin?tab=topics, #admin?tab=documents. Tab không hợp lệ trở về subjects. Back/Forward/reload đồng bộ mục đang chọn. Các URL học tập được đưa về quản trị khi role ADMIN; LEARNER vẫn bị chặn trước khi render admin.
 
-`node tests/login.cjs` kiểm tra riêng form đăng nhập bằng Playwright; `node serve.cjs` cần đang chạy ở cổng 4173.
+Hồ sơ quản trị chỉ hiển thị tên/email/role từ session, chưa hỗ trợ lưu hồ sơ lên API. Danh mục minh họa giữ trong bộ nhớ qua các lần chuyển tab, reset khi reload, đăng xuất hoặc thay đổi người dùng/role. Đổi tên môn/chủ đề cập nhật tham chiếu liên quan; tạo chủ đề dùng danh sách môn thực tế. Upload chỉ kiểm tra tệp và thêm bản ghi chờ minh họa; retry/bật tắt không gọi backend. Backend hiện chưa có API quản trị nên kết quả test chỉ xác minh UI và bảo vệ route, không khẳng định API trả 403.
 
-`node tests/browser.cjs` chạy Playwright từ runtime Codex và Microsoft Edge cài sẵn (đường dẫn trong test phụ thuộc máy hiện tại). Kiểm tra 9 route ở 390/768/1024/1440px, tìm kiếm, dialog, dữ liệu nhập an toàn, nộp quiz, biểu mẫu đăng ký, trạng thái tài liệu; lưu ảnh trong `outputs/`.
+Kiểm tra thêm: node tests/admin.cjs và node tests/preview.cjs. Test admin bao phủ điều hướng/hồ sơ theo role, ba tab ở 360/390/768/1440px, URL/Back/Forward/reload, thêm/sửa/bật tắt, liên kết môn/chủ đề, lọc và upload/retry tài liệu minh họa, logout/Back. Ảnh kiểm tra ở tests/test-output/admin-*.png (Git bỏ qua).
 
-Đã thử workflow subagent cho kiến trúc, UI, JavaScript và review nhưng tất cả agent bị lỗi stream kết nối trước khi trả kết quả. Mã được triển khai và kiểm tra bởi main agent; chưa có review độc lập thành công.
+### Thiết kế ADMIN từ Figma
 
-
-
+Tham chiếu: https://www.figma.com/design/7XFlHxljV34po4s9ERuwVS?node-id=2-2. Figma MCP hết hạn mức Starter khi triển khai; đã đối chiếu board trực tiếp qua trình duyệt, chưa trích xuất được token/asset để cam kết khớp từng pixel. Giữ màu chàm và font hệ thống của dự án. `src/css/admin-shell.css` chỉ áp dụng theo role ADMIN; `src/css/admin.css` áp dụng cho nội dung quản trị. Desktop dùng sidebar tối, mobile dùng drawer có Escape, trả focus, chặn thao tác nền khi mở. Môn học có danh sách, tìm kiếm, số chủ đề thực tế; chủ đề được nhóm theo môn/chương. Form thêm mở qua CTA, form sửa dùng lại validation. Không thêm dashboard tổng quan hoặc thống kê giả.

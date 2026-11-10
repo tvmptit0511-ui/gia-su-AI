@@ -8,4 +8,4 @@ http.createServer((req, res) => {
  const file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
  if (!file.startsWith(root + path.sep) || !['.html','.css','.js','.png'].includes(path.extname(file))) { res.writeHead(404); return res.end('Not found'); }
  fs.readFile(file, (err, data) => { if (err) { res.writeHead(404); return res.end('Not found'); } res.writeHead(200, { 'Content-Type': types[path.extname(file)], 'X-Content-Type-Options': 'nosniff' }); res.end(data); });
-}).listen(4173, '127.0.0.1', () => console.log('Gia Su AI: http://127.0.0.1:4173'));
+}).listen(Number(process.env.PORT || 4173), '127.0.0.1', () => console.log('Gia Su AI: http://127.0.0.1:' + (process.env.PORT || 4173)));
