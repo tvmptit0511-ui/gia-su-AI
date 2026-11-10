@@ -1,64 +1,77 @@
 # Gia Sư AI frontend
 
-Giao diện HTML/CSS/JavaScript thuần, dùng ES modules. Không gọi API, không xác thực thật và không gửi dữ liệu nhập lên máy chủ. Nội dung học, tiến độ và tài liệu hiển thị là minh hoạ. Thay đổi trong bản xem trước chỉ tồn tại trong bộ nhớ của trang.
+HTML/CSS/JavaScript thuần, dùng ES modules. Luồng đăng ký, đăng nhập và trang chủ đã nối FastAPI. Bố cục và các thành phần giao diện hiện có được giữ lại.
 
 ## Chạy
+
+Khởi động backend từ `back-end/`:
+
+```powershell
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+Trong terminal khác, từ `front-end/`:
 
 ```powershell
 node serve.cjs
 ```
 
-Mở http://127.0.0.1:4173. Hoặc dùng Live Server của VS Code. Không mở index.html bằng file:// vì ES modules cần HTTP.
+Mở http://127.0.0.1:4173. Không cần cài package npm để chạy server frontend; server dùng thư viện có sẵn của Node.js.
+
+`serve.cjs` chuyển request `/api/*` tới `http://127.0.0.1:8000`, bao gồm JSON body, Bearer token, HTTP status và thông báo lỗi. Nếu backend chạy ở địa chỉ khác, đặt `BACKEND_URL` trước khi chạy server:
+
+```powershell
+$env:BACKEND_URL = 'http://127.0.0.1:8001'
+node serve.cjs
+```
+
+Nếu dùng Live Server thay cho `serve.cjs`, đặt meta `api-base` trong `index.html` thành URL API tuyệt đối và bổ sung origin của Live Server vào `CORS_ORIGIN` ở backend. Cách chạy mặc định dùng proxy phía trên.
+
+## Luồng đã kết nối
+
+- Đăng ký gọi `POST /api/auth/register`; lỗi trường từ server hiện cạnh ô nhập. Thành công chuyển đến đăng nhập và điền email vừa đăng ký.
+- Đăng nhập gọi `POST /api/auth/login`; thành công lưu token vào `sessionStorage` và mở trang chủ.
+- Trang chủ yêu cầu đăng nhập. Khi tải lại trang, frontend gọi `GET /api/auth/me` trước khi hiển thị các trang cần tài khoản.
+- Menu hiển thị tên người dùng, hồ sơ và đăng xuất. LEARNER không có mục quản trị; trang quản trị còn kiểm tra `/api/admin/access` ở backend.
+- Hồ sơ hiển thị tên, email, vai trò và ngày tạo từ tài khoản thật; hiện chỉ xem thông tin.
+- Đăng xuất hoặc token hết hạn xóa phiên phía trình duyệt. Sai thông tin đăng nhập không tạo phiên. Không lưu mật khẩu vào storage.
+- Lỗi mạng, backend ngừng chạy và lỗi server có thông báo; form chống gửi nhiều lần khi đang xử lý.
+
+API kiểm tra MySQL: http://127.0.0.1:8000/api/database. Swagger: http://127.0.0.1:8000/docs.
+
+Các trang học, chat, luyện tập và quản trị nội dung hiện vẫn có dữ liệu mẫu; phần này chưa có các API nghiệp vụ để lưu nội dung hoặc gọi AI. Phân quyền phía frontend phục vụ điều hướng; backend xác thực token và quyền trước khi cho phép API bảo vệ.
 
 ## Cấu trúc
 
 ```text
-Project/
-├── docs/           # Tài liệu yêu cầu, thiết kế CSDL, hướng dẫn UI, ảnh tham chiếu
+front-end/
+├── index.html
+├── serve.cjs                # Server tĩnh và proxy API
 ├── src/
-│   ├── css/        # Styles và responsive
-│   └── js/         # JavaScript, components và các trang
-├── tests/          # Kiểm thử trình duyệt
-├── outputs/        # Ảnh chụp kết quả kiểm thử
-├── index.html      # Điểm vào ứng dụng
-├── serve.cjs       # Server phát triển
-├── AGENTS.md       # Hướng dẫn làm việc với dự án
-└── README.md       # Hướng dẫn chạy và cấu trúc
+│   ├── css/styles.css
+│   └── js/
+│       ├── app.js           # Router, khôi phục phiên và phân quyền điều hướng
+│       ├── api.js           # fetch wrapper, JSON, token và lỗi API
+│       ├── session.js       # Token, thông tin người dùng và hết hạn
+│       ├── components/
+│       └── pages/
+├── tests/                   # Browser tests và backend fixture trong bộ nhớ
+├── package.json             # Lệnh chạy và Playwright dành cho kiểm thử
+└── package-lock.json
 ```
 
-Tài liệu mới và ảnh tham chiếu đặt trong `docs/`; mã nguồn đặt trong `src/`; kết quả kiểm thử đặt trong `outputs/`.
+## Kiểm thử trình duyệt
 
-- `index.html`: shell, header, điều hướng, dialog và vùng thông báo.
-- `src/css/styles.css`: token màu, thành phần, desktop/tablet/mobile.
-- `src/js/app.js`: hash router và điều hướng mobile.
-- `src/js/components/ui.js`: hàm DOM an toàn, button, panel, form field, dialog, toast.
-- `src/js/data.js`: nội dung mẫu cố định.
-- `src/js/pages/learning.js`: danh mục, tìm chủ đề, dashboard.
-- `src/js/pages/account.js`: đăng nhập, đăng ký, hồ sơ.
-- `src/js/pages/chat.js`: bố cục hội thoại, gợi ý, xác nhận lời giải, phản hồi.
-- `src/js/pages/practice.js`: bài mẫu 5 câu, nộp và kết quả minh hoạ.
-- `src/js/pages/admin.js`: quản trị danh mục/tài liệu trong bộ nhớ.
-- `serve.cjs`: server tĩnh dùng Node built-in, không cài package.
+Cần cài `back-end/requirements-dev.txt` vào virtualenv và cài dependency frontend:
 
-## Phạm vi
+```powershell
+npm install
+npm test
+npm run test:login
+```
 
-Các trang: #home, #login, #register, #chat, #practice, #results, #dashboard, #profile, #admin. Responsive tại 768px và 1100px. Khi tích hợp backend sau này cần hợp đồng API và kiểm tra quyền ở máy chủ; router hiện tại không phải hàng rào xác thực. Biểu mẫu tài khoản chỉ kiểm tra dữ liệu tại trình duyệt; không lưu mật khẩu. Chọn tệp chỉ xem tên, không upload và không phân tích nội dung.
+Test tự mở backend FastAPI riêng với repository trong bộ nhớ, server frontend ở cổng tạm và Edge headless trên Windows. Test không dùng `.env` hoặc ghi database thật, không tạo ảnh trong `outputs/`, và đóng các tiến trình sau khi chạy.
 
-Thiết kế tham chiếu: https://www.figma.com/design/pYRVP7wXAOXI3ZYwIUEBO1. Lần triển khai không đọc được trạng thái Figma mới do hạn mức MCP; dựa trên các khung đã tạo và bảng màu ảnh trong thư mục.
+Có thể đặt `PYTHON` để chọn Python, `PLAYWRIGHT_CHANNEL` để chọn trình duyệt hoặc `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` để chỉ định executable. Trên máy chưa có browser tương thích có thể chạy `npx playwright install chromium`.
 
-## Kiểm tra
-
-### Form đăng nhập — TK-005
-
-`src/js/pages/login.js` triển khai form email/mật khẩu, lỗi tiếng Việt, hỗ trợ trình quản lý mật khẩu, hiện/ẩn mật khẩu, cảnh báo Caps Lock và điều hướng đăng ký. Giao diện dùng lại token hiện có và hỗ trợ màn hình từ 360px.
-
-Đối chiếu SRS FR-01.2, backlog SF-01.1.3 và bảng phân công TK-005. **Phạm vi được yêu cầu: chỉ tạo giao diện, không gắn API.** Phần xác thực đầy đủ của TK-005/TK-006 nằm ngoài lần triển khai này. Khi dữ liệu hợp lệ, form thông báo dịch vụ chưa khả dụng; không tạo phiên giả, không lưu mật khẩu, không chuyển trang như thể đã đăng nhập. Cần bổ sung endpoint/method, schema request/response, mã lỗi và cơ chế cookie/token trước khi tích hợp lưu trạng thái, xử lý lỗi đăng nhập, trạng thái đang gửi và chuyển `#home` sau thành công. Không có Google login hoặc quên mật khẩu theo phạm vi Won’t của backlog.
-
-`node tests/login.cjs` kiểm tra riêng form đăng nhập bằng Playwright; `node serve.cjs` cần đang chạy ở cổng 4173.
-
-`node tests/browser.cjs` chạy Playwright từ runtime Codex và Microsoft Edge cài sẵn (đường dẫn trong test phụ thuộc máy hiện tại). Kiểm tra 9 route ở 390/768/1024/1440px, tìm kiếm, dialog, dữ liệu nhập an toàn, nộp quiz, biểu mẫu đăng ký, trạng thái tài liệu; lưu ảnh trong `outputs/`.
-
-Đã thử workflow subagent cho kiến trúc, UI, JavaScript và review nhưng tất cả agent bị lỗi stream kết nối trước khi trả kết quả. Mã được triển khai và kiểm tra bởi main agent; chưa có review độc lập thành công.
-
-
-
+Các kịch bản gồm: lỗi form, đăng ký API, email trùng, sai mật khẩu, đăng nhập thành công, token/khôi phục phiên/đăng xuất, LEARNER bị chặn, ADMIN được truy cập, responsive và mất kết nối backend.

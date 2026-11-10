@@ -1,6 +1,5 @@
 import asyncio
 import json
-import re
 from contextlib import asynccontextmanager
 
 import httpx
@@ -58,7 +57,7 @@ async def test_dang_ky_thanh_cong_201_khong_lo_mat_khau():
         assert user["name"] == "Nguyễn Văn An"
         assert user["email"] == "an@example.com"
         assert user["role"] == "LEARNER"
-        assert re.fullmatch(r"[0-9a-f-]{36}", user["id"])
+        assert type(user["id"]) is int and user["id"] > 0
         assert user["createdAt"].endswith("Z")
         assert sorted(user) == ["createdAt", "email", "id", "name", "role"]
 

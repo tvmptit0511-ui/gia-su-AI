@@ -1,6 +1,10 @@
 # Gia Sư AI — Back-end
 
-API Python 3.10+ dùng FastAPI. Hiện có đăng ký tài khoản và xác thực token JWT.
+API Python 3.10+ dùng FastAPI. Có đăng ký, đăng nhập, xác thực JWT và phân quyền; lưu tài khoản trong MySQL.
+
+Schema hiện tại dùng `INT AUTO_INCREMENT` cho ID của 11 bảng; API trả `id` dạng số. Database cũ đang dùng UUID cần chạy migration `0002_integer_ids` sau khi dừng server và sao lưu, theo [hướng dẫn chuyển ID](../database/README.md#chuyển-database-cũ-từ-uuid-sang-id-tự-tăng).
+
+Xem [hướng dẫn database](../database/README.md) để kết nối MySQL, cấu hình `.env`, tạo đủ 11 bảng bằng migration và seed dữ liệu.
 
 ## Chạy
 
@@ -10,6 +14,9 @@ Trong Git Bash (Windows), từ thư mục `back-end/`:
 python -m venv .venv
 source .venv/Scripts/activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements-dev.txt    # chỉ chạy API: pip install -r requirements.txt
+cp .env.example .env                 # nếu chưa có .env; đặt JWT_SECRET riêng
+python -m app.db.init_db              # MySQL phải đang chạy, DATABASE_URL đã cấu hình
+python -m app.db.seed
 
 uvicorn app.main:app --reload --port 8000   # http://localhost:8000
 pytest                                      # chạy toàn bộ test
@@ -17,11 +24,14 @@ pytest                                      # chạy toàn bộ test
 
 Tài liệu API tự sinh (thử gọi trực tiếp được): http://localhost:8000/docs
 
+Frontend chạy bằng `node serve.cjs` trong `front-end/`, mở http://127.0.0.1:4173. Server frontend proxy `/api/*` tới backend cổng 8000; đăng ký/đăng nhập gọi API thật.
+
 | Biến môi trường | Mặc định | Ý nghĩa |
 | --- | --- | --- |
 | `CORS_ORIGIN` | `http://127.0.0.1:4173,http://localhost:4173` | Các origin front-end được phép, cách nhau bằng dấu phẩy |
 | `JWT_SECRET` | khóa ngẫu nhiên mỗi lần khởi động | Khóa ký token, tối thiểu 32 ký tự. **Bắt buộc đặt khi chạy thật** |
 | `ACCESS_TOKEN_MINUTES` | `30` | Thời hạn access token, tính bằng phút |
+| `DATABASE_URL` | MySQL cục bộ theo `.env.example` | Chuỗi kết nối `mysql+pymysql://...` |
 
 Tạo khóa bí mật: `python -c "import secrets; print(secrets.token_urlsafe(48))"`, rồi đặt trước khi chạy, ví dụ `export JWT_SECRET=...` trong Git Bash. Không đặt `JWT_SECRET` thì server vẫn chạy (kèm cảnh báo) nhưng token mất hiệu lực mỗi lần khởi động lại và không dùng được khi chạy nhiều worker. Không commit khóa lên GitHub.
 
@@ -32,18 +42,23 @@ back-end/
 ├── app/
 │   ├── main.py                     # create_app(): nối các tầng, middleware, CORS
 │   ├── config.py                   # Đọc biến môi trường
+│   ├── db/                         # Base, engine/session, khởi tạo và seed
+│   ├── models/                     # 11 model SQLAlchemy theo thiết kế CSDL
 │   ├── error_handlers.py           # Định dạng lỗi thống nhất
 │   ├── routes/auth.py              # POST /api/auth/register
 │   ├── routes/me.py                # GET /api/auth/me
 │   ├── services/auth_service.py    # Luồng đăng ký
 │   ├── services/token_service.py   # Tạo và kiểm tra token JWT
 │   ├── dependencies/auth.py        # get_current_user, require_roles
-│   ├── repositories/user_repository.py   # Kho người dùng (đang lưu trong bộ nhớ)
+│   ├── repositories/user_repository.py   # DTO và repository bộ nhớ dùng cho test
+│   ├── repositories/sqlalchemy_user_repository.py  # Lưu/đọc tài khoản MySQL
 │   ├── validators/register_validator.py  # Kiểm tra dữ liệu đăng ký
 │   ├── schemas/auth.py             # Schema phản hồi và mô tả /docs
 │   ├── middlewares/                # Giới hạn body, header bảo mật
 │   └── utils/                      # password (băm scrypt), errors
 ├── tests/
+├── alembic/                        # Migration schema
+├── alembic.ini
 ├── requirements.txt                # Thư viện chạy API
 ├── requirements-dev.txt            # Thêm pytest, httpx để test
 └── pytest.ini
@@ -54,6 +69,36 @@ back-end/
 ### `GET /api/health`
 
 `200 {"status": "ok"}`
+
+### `GET /api/database`
+
+Endpoint đặt trong `app/main.py`, mở session và thực hiện `SELECT 1` để kiểm tra MySQL:
+
+```json
+{"status":"ok","database":"connected","message":"Kết nối database thành công."}
+```
+
+Mất kết nối trả `503 DATABASE_UNAVAILABLE`, không trả host, mật khẩu hoặc traceback cho client.
+
+### `POST /api/auth/login`
+
+Gửi JSON:
+
+```json
+{"email":"an@example.com","password":"MatKhau@123"}
+```
+
+Backend chuẩn hóa email, kiểm tra mật khẩu đã băm bằng scrypt và trạng thái tài khoản. Thành công trả `200` với `message`, `access_token`, `token_type: "Bearer"`, `expires_in` và `user` gồm `id`, `name`, `email`, `role`, `createdAt`.
+
+- Sai email hoặc mật khẩu: `401 INVALID_CREDENTIALS` với cùng thông báo.
+- Tài khoản đã vô hiệu hóa và mật khẩu đúng: `403 FORBIDDEN`.
+- Dữ liệu sai: `422 VALIDATION_ERROR`, có `fields` để frontend hiển thị cạnh ô nhập.
+
+Đăng nhập không cắt khoảng trắng của mật khẩu. Trường `role` do client tự gửi bị bỏ qua; token được cấp theo tài khoản đã lưu.
+
+### `GET /api/admin/access`
+
+Endpoint đặt trong `app/main.py`, sử dụng `Depends(require_roles("ADMIN"))`. Gửi Bearer token: ADMIN nhận `200 {"role":"ADMIN","message":"Bạn có quyền quản trị."}`, LEARNER nhận 403, thiếu token nhận 401. Frontend kiểm tra endpoint này trước khi mở trang quản trị.
 
 ### `POST /api/auth/register`
 
@@ -87,7 +132,7 @@ Các trường khác trong body (ví dụ `role`) bị bỏ qua. Tài khoản m�
 {
   "message": "Đăng ký tài khoản thành công.",
   "user": {
-    "id": "e2969c0c-c7c6-4c28-925e-0bf1c8048e56",
+    "id": 1,
     "name": "Nguyễn Văn An",
     "email": "an@example.com",
     "role": "LEARNER",
@@ -123,7 +168,7 @@ Header: `Authorization: Bearer <access_token>`
 ```json
 {
   "user": {
-    "id": "e2969c0c-c7c6-4c28-925e-0bf1c8048e56",
+    "id": 1,
     "name": "Nguyễn Văn An",
     "email": "an@example.com",
     "role": "LEARNER",
@@ -166,7 +211,7 @@ async def admin_area():
     ...                                   # chỉ ADMIN, người khác nhận 403
 ```
 
-**Phát hành token** (API đăng nhập TK-006 sẽ dùng):
+**Phát hành token** (API đăng nhập đang sử dụng):
 
 ```python
 issued = request.app.state.token_service.create_access_token(user.id)
@@ -175,7 +220,7 @@ issued = request.app.state.token_service.create_access_token(user.id)
 
 Thử trên `/docs`: bấm **Authorize**, dán access token, rồi gọi `GET /api/auth/me`.
 
-Front-end cần gửi `Authorization: Bearer <token>` ở mỗi request cần đăng nhập. Nơi lưu token (bộ nhớ, `sessionStorage`, cookie `HttpOnly`) cần quyết định cùng với API đăng nhập; lưu ở `localStorage` dễ bị lấy cắp nếu trang bị XSS.
+Frontend gửi `Authorization: Bearer <token>` ở mỗi request cần đăng nhập. Token nằm trong bộ nhớ và `sessionStorage`, không lưu mật khẩu. Khi tải lại trang, frontend gọi `/api/auth/me` để xác thực phiên; token hết hạn hoặc tài khoản vô hiệu hóa được xóa khỏi trình duyệt. Đăng xuất hiện xóa phiên phía client; JWT đã cấp vẫn có hiệu lực đến khi hết hạn.
 
 ## Mật khẩu
 
@@ -183,8 +228,7 @@ Băm bằng scrypt (`hashlib.scrypt` có sẵn trong Python), salt ngẫu nhiên
 
 ## Việc cần làm tiếp
 
-- Kho người dùng đang lưu trong bộ nhớ, dữ liệu mất khi khởi động lại. Khi `database/` có thiết kế bảng, viết repository mới có `find_by_email`, `find_by_id` và `create`, thêm ràng buộc UNIQUE cho email và truyền vào `create_app`.
-- API đăng nhập (TK-006) dùng lại `verify_password` và `create_access_token`. Nếu dùng cookie thì cần bật `allow_credentials` trong cấu hình CORS và chỉ định rõ origin.
+- Các API danh mục, chat và quiz sử dụng model trong `app/models/` và session transaction của `app/db/database.py`; kiểm tra chủ sở hữu và quy tắc nghiệp vụ theo tài liệu SRS trước khi lưu dữ liệu.
 - Chưa có refresh token và đăng xuất thu hồi token: token đã phát hành vẫn dùng được đến khi hết hạn. Nếu cần thu hồi ngay, thêm danh sách token bị thu hồi hoặc số phiên bản token theo người dùng.
 - Giới hạn số lần gọi theo IP cho `/api/auth/register` (mỗi lần băm tốn CPU và 32 MiB bộ nhớ).
-- Front-end (`front-end/src/js/pages/account.js`) chưa gọi API; hiện form vẫn chỉ kiểm tra tại trình duyệt.
+- Các trang danh mục, chat, quiz và quản trị nội dung ngoài luồng tài khoản còn dùng dữ liệu minh họa; cần API nghiệp vụ tương ứng để lưu và xử lý dữ liệu thật.
