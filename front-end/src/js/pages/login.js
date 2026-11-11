@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { el, field, link, notice } from '../components/ui.js';
 import { setupValidation, validateFields, showServerErrors } from '../components/validation.js';
 import { api } from '../api.js';
@@ -90,3 +91,7 @@ export function renderLogin() {
    form,
    el('p', { className: 'login-register' }, 'Chưa có tài khoản? ', link('Đăng ký ngay', '#register', ''))));
 }
+=======
+import { renderAccountScreen } from './auth-screen.js';
+export function renderLogin() { return renderAccountScreen(false); }
+>>>>>>> origin/main

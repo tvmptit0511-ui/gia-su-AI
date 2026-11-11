@@ -1,4 +1,5 @@
 
+<<<<<<< HEAD
 .env
 __pycache__/
 *.py[cod]
@@ -7,3 +8,8 @@ __pycache__/
 venv/
 node_modules/
 database/backups/
+=======
+
+# Generated browser test screenshots
+/front-end/tests/test-output/
+>>>>>>> origin/main
