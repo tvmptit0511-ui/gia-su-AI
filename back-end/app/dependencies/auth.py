@@ -41,7 +41,8 @@ async def get_current_user(
 
     Raises:
         AppError: 401 ``NOT_AUTHENTICATED`` (không có token), ``TOKEN_EXPIRED`` (hết hạn),
-            ``INVALID_TOKEN`` (token sai, hoặc tài khoản của token không còn tồn tại).
+            ``INVALID_TOKEN`` (token sai, hoặc tài khoản của token không còn tồn tại);
+            403 ``FORBIDDEN`` khi tài khoản đã bị vô hiệu hóa.
     """
     if credentials is None or not credentials.credentials:
         raise not_authenticated_error()
@@ -52,6 +53,8 @@ async def get_current_user(
     if user is None:
         # Token hợp lệ nhưng tài khoản đã bị xoá: coi như token không còn dùng được.
         raise invalid_token_error()
+    if not user.is_active:
+        raise AppError(403, "FORBIDDEN", "Tài khoản đã bị vô hiệu hóa.")
     return user
 
 

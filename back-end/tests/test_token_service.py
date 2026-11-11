@@ -76,7 +76,7 @@ def test_khoa_qua_ngan_hoac_cau_hinh_sai_bi_tu_choi_ngay_khi_khoi_tao():
         make_service(access_token_minutes=0)
 
 
-@pytest.mark.parametrize("user_id", ["", None, 123])
+@pytest.mark.parametrize("user_id", ["", None, 0, -1, True, 1.5])
 def test_khong_the_phat_hanh_token_voi_user_id_khong_hop_le(user_id):
     with pytest.raises(ValueError):
         make_service().create_access_token(user_id)

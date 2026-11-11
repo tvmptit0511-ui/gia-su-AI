@@ -90,13 +90,19 @@ class TokenService:
         self._issuer = issuer
         self._access_token_lifetime = timedelta(minutes=access_token_minutes)
 
-    def create_access_token(self, user_id: str, *, expires_delta: timedelta | None = None) -> IssuedToken:
+    def create_access_token(self, user_id: int | str, *, expires_delta: timedelta | None = None) -> IssuedToken:
         """Phát hành access token cho người dùng (API đăng nhập sẽ gọi hàm này).
 
         ``expires_delta`` chủ yếu để test token hết hạn; bình thường dùng thời hạn cấu hình.
         """
+        if isinstance(user_id, bool):
+            raise ValueError("user_id phải là số nguyên dương hoặc chuỗi không rỗng.")
+        if isinstance(user_id, int):
+            if user_id <= 0:
+                raise ValueError("user_id phải là số nguyên dương.")
+            user_id = str(user_id)
         if not isinstance(user_id, str) or not user_id:
-            raise ValueError("user_id phải là chuỗi không rỗng.")
+            raise ValueError("user_id phải là số nguyên dương hoặc chuỗi không rỗng.")
         lifetime = expires_delta if expires_delta is not None else self._access_token_lifetime
         # jwt lưu thời điểm theo giây; bỏ phần micro giây để giá trị trong token và giá trị trả về khớp nhau.
         now = datetime.now(timezone.utc).replace(microsecond=0)

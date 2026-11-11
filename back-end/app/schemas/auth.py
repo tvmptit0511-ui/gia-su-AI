@@ -1,7 +1,7 @@
 """Schema Pydantic cho API xác thực.
 
-``RegisterRequestDoc`` chỉ dùng để mô tả body trong tài liệu OpenAPI (/docs).
-Việc kiểm tra dữ liệu thật nằm ở ``app/validators/register_validator.py`` để
+``RegisterRequestDoc`` và ``LoginRequestDoc`` mô tả body trong OpenAPI (/docs).
+Việc kiểm tra dữ liệu thật nằm ở ``app/validators/`` để
 thông báo lỗi tiếng Việt khớp với front-end.
 """
 
@@ -19,8 +19,13 @@ class RegisterRequestDoc(BaseModel):
     )
 
 
+class LoginRequestDoc(BaseModel):
+    email: str = Field(max_length=255, examples=["an@example.com"])
+    password: str = Field(min_length=1, max_length=128, examples=["MatKhau@123"])
+
+
 class PublicUser(BaseModel):
-    id: str
+    id: int
     name: str
     email: str
     role: str
@@ -29,6 +34,14 @@ class PublicUser(BaseModel):
 
 class RegisterResponse(BaseModel):
     message: str
+    user: PublicUser
+
+
+class LoginResponse(BaseModel):
+    message: str
+    access_token: str
+    token_type: str
+    expires_in: int
     user: PublicUser
 
 

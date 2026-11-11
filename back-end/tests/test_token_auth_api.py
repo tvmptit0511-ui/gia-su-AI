@@ -1,5 +1,5 @@
-import uuid
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from datetime import timedelta
 from typing import Annotated
 
@@ -57,7 +57,7 @@ async def make_user(repository, *, email="an@example.com", role="LEARNER") -> Us
     return await repository.create(name="Nguyễn Văn An", email=email, password_hash="khong-dung", role=role)
 
 
-def token_for(app, user_id: str, **kwargs) -> str:
+def token_for(app, user_id: int | str, **kwargs) -> str:
     return app.state.token_service.create_access_token(user_id, **kwargs).access_token
 
 
@@ -150,10 +150,22 @@ async def test_token_gia_hoac_hong_401_invalid_token():
 
 async def test_token_hop_le_nhung_tai_khoan_khong_con_ton_tai_401_invalid_token():
     async with api() as (client, app, _):
-        token = token_for(app, str(uuid.uuid4()))
+        token = token_for(app, 2147483647)
         response = await client.get(ME, headers=bearer(token))
         assert response.status_code == 401
         assert response.json()["error"]["code"] == "INVALID_TOKEN"
+
+
+async def test_tai_khoan_bi_vo_hieu_hoa_khong_the_dung_token_da_cap():
+    async with api() as (client, app, repository):
+        user = await make_user(repository)
+        token = token_for(app, user.id)
+        repository._users[user.id] = replace(user, is_active=False)
+
+        response = await client.get(ME, headers=bearer(token))
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "FORBIDDEN"
+        assert "password" not in response.text.lower()
 
 
 async def test_token_cua_nguoi_nay_khong_the_dung_de_xem_nguoi_khac():

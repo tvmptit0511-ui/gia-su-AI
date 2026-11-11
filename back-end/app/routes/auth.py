@@ -2,7 +2,14 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Depends, Request
 
-from app.schemas.auth import ErrorResponse, PublicUser, RegisterRequestDoc, RegisterResponse
+from app.schemas.auth import (
+    ErrorResponse,
+    LoginRequestDoc,
+    LoginResponse,
+    PublicUser,
+    RegisterRequestDoc,
+    RegisterResponse,
+)
 from app.services.auth_service import AuthService
 from app.utils.errors import AppError
 
@@ -52,6 +59,47 @@ async def register(
     user = await service.register(payload)
     return RegisterResponse(
         message="Đăng ký tài khoản thành công.",
+        user=PublicUser(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            role=user.role,
+            created_at=user.created_at,
+        ),
+    )
+
+
+@router.post(
+    "/login",
+    response_model=LoginResponse,
+    summary="Đăng nhập và cấp access token",
+    dependencies=[Depends(require_json)],
+    responses={
+        400: {"model": ErrorResponse, "description": "INVALID_JSON"},
+        401: {"model": ErrorResponse, "description": "INVALID_CREDENTIALS: email hoặc mật khẩu sai"},
+        403: {"model": ErrorResponse, "description": "FORBIDDEN: tài khoản đã bị vô hiệu hóa"},
+        415: {"model": ErrorResponse, "description": "UNSUPPORTED_MEDIA_TYPE"},
+        422: {"model": ErrorResponse, "description": "VALIDATION_ERROR: dữ liệu đăng nhập chưa hợp lệ"},
+    },
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {"application/json": {"schema": LoginRequestDoc.model_json_schema()}},
+        }
+    },
+)
+async def login(
+    request: Request,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+    payload: Annotated[Any, Body()] = None,
+) -> LoginResponse:
+    user = await service.login(payload)
+    token = request.app.state.token_service.create_access_token(user.id)
+    return LoginResponse(
+        message="Đăng nhập thành công.",
+        access_token=token.access_token,
+        token_type=token.token_type,
+        expires_in=token.expires_in,
         user=PublicUser(
             id=user.id,
             name=user.name,
