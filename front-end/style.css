@@ -1,4 +1,4 @@
-/* --- 1. Thiết lập chung (Bắt buộc phải có) --- */
+/* --- 1. Thiết lập chung --- */
 * {
   margin: 0;
   padding: 0;
@@ -44,7 +44,17 @@ body {
   font-size: 14px;
 }
 
-/* --- 3. Bố cục chính (Layout 2 cột) --- */
+.btn-account {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 6px;
+  color: #334155;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* --- 3. Bố cục chính (Layout) --- */
 .container {
   max-width: 1100px;
   margin: 40px auto;
@@ -57,6 +67,17 @@ body {
 }
 
 /* --- 4. Cột bên trái --- */
+.badge {
+  display: inline-block;
+  background-color: #eef2ff;
+  color: #4f46e5;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
 .left-content h1 {
   font-size: 44px;
   line-height: 1.15;
@@ -82,7 +103,7 @@ body {
   cursor: pointer;
 }
 
-/* --- 5. Thẻ Card Đăng nhập / Đăng ký --- */
+/* --- 5. Thẻ Card Đăng ký --- */
 .card {
   background-color: #ffffff;
   border-radius: 12px;
@@ -144,6 +165,31 @@ body {
   border-color: #4f46e5;
 }
 
+.hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* Checkbox */
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.checkbox-group input {
+  margin-top: 3px;
+}
+
+.checkbox-group label {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
 /* Nút Submit */
 .btn-submit {
   width: 100%;
@@ -155,7 +201,6 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 10px;
 }
 
 .btn-submit:hover {
@@ -173,45 +218,6 @@ body {
   background-color: #ffffff;
 }
 
-/* --- 7. Các phần bổ sung riêng cho trang Login --- */
-.form-subtitle {
-  font-size: 14px;
-  color: #64748b;
-  margin-top: -12px;
-  margin-bottom: 24px;
-}
 
-.input-password-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
+/* login */
 
-.input-password-wrapper input {
-  width: 100%;
-  padding-right: 60px;
-}
-
-.btn-toggle-password {
-  position: absolute;
-  right: 12px;
-  background: none;
-  border: none;
-  color: #4f46e5;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.form-footer-link {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 13px;
-  color: #64748b;
-}
-
-.form-footer-link a {
-  color: #4f46e5;
-  font-weight: 600;
-  text-decoration: underline;
-}
